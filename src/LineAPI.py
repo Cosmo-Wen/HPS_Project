@@ -1,4 +1,5 @@
 import asyncio
+from aiohttp import web
 
 from .enums import Instructions
 
@@ -33,7 +34,7 @@ class LineAPI:
             self.shutdown_server()  # 呼叫自定義的結束函式
     
     async def listen(self):
-        self._app.run(port=8000)
+        self._app.run(port=8001)
         return self._lastest_message
     
     def reject_instruction(self, message: str):
@@ -46,8 +47,8 @@ class LineAPI:
 
         Raises: None
         """
-        text = TextSendMessage(text=message)
-        self._api.push_message(self._current_user, messages=f'Error: {text}.')
+        text = TextSendMessage(text=f'Error: {message}.')
+        self._api.push_message(self._current_user, messages=text)
 
     def log_reply(self, message: str):
         """Logs replying messages
@@ -59,8 +60,8 @@ class LineAPI:
 
         Raises: None
         """
-        text = TextSendMessage(text=message)
-        self._api.push_message(self._current_user, f'Log: {message}')
+        text = TextSendMessage(text=f'Log: {message}')
+        self._api.push_message(self._current_user, messages=text)
 
     def shutdown_server(self):
         func = request.environ.get('werkzeug.server.shutdown')
@@ -68,7 +69,7 @@ class LineAPI:
             raise RuntimeError('Not running with the Werkzeug server')
         func()
 
-async def fetch_instructions(user_interface) -> Instructions:
+async def fetch_instructions(user_interface = None) -> Instructions:
     """Temporary input method
 
     Takes an terminal input and returns the instruction type depending on the input
@@ -82,11 +83,11 @@ async def fetch_instructions(user_interface) -> Instructions:
     """
     loop = asyncio.get_running_loop()
     user_input = await user_interface.listen()
-    match user_input:
-        case 'start': instruction = Instructions.START
-        case 'end': instruction = Instructions.END
-        case 'move': instruction = Instructions.MOVE
-        case 'return': instruction = Instructions.RETURN
-        case 'log': instruction = Instructions.LOG
-        case _: instruction = Instructions.INVALID
+    
+    if user_input == 'start': instruction = Instructions.START
+    elif user_input == 'end': instruction = Instructions.END
+    elif user_input == 'move': instruction = Instructions.MOVE
+    elif user_input == 'return': instruction = Instructions.RETURN
+    elif user_input == 'log': instruction = Instructions.LOG
+    else: instruction = Instructions.INVALID
     return instruction
