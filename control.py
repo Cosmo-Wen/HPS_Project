@@ -1,3 +1,18 @@
+import RPi.GPIO as GPIO
+from time import sleep, time
+
+PIN_TRIGGER = 7
+PIN_ECHO = 11
+PIN_SERVO = 12
+
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(PIN_TRIGGER, GPIO.OUT)
+GPIO.setup(PIN_ECHO, GPIO.IN)
+GPIO.setup(PIN_SERVO, GPIO.OUT)
+
+pwm = GPIO.PWM(PIN_SERVO, 50)
+pwm.start(4)
+
 class Lid:
     def __init__(self):
         self.run = False
@@ -24,10 +39,20 @@ class Lid:
                 if(flag==False):
                     pwm.ChangeDutyCycle(7.5)
                     sleep(5)
-                    pwm.ChangeDutyCycle(2.5)
+                    pwm.ChangeDutyCycle(4)
                     sleep(1)
                 flag = True
             else:
                 flag = False
 
             sleep(1)
+
+lid = Lid()
+try:
+    lid.sense()
+    sleep(5)
+    lid.run = True
+    lid.sense()
+finally:
+    pwm.stop()
+    GPIO.cleanup()
