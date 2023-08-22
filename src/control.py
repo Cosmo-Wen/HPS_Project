@@ -1,5 +1,8 @@
+import asyncio
+from time import time
+
 import RPi.GPIO as GPIO
-from time import sleep, time
+
 
 PIN_TRIGGER = 7
 PIN_ECHO = 11
@@ -9,8 +12,9 @@ PIN_SERVO = 12
 
 class Lid:
     def __init__(self):
-        self._run = False
         self._flag = False
+        self._sense_event = asyncio.Event()
+        self._sense_event.clear()
 
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(PIN_TRIGGER, GPIO.OUT)
@@ -21,26 +25,22 @@ class Lid:
         self._pwm.start(4)
     
     def turn_on(self):
-        self._run = True
+        self._sense_event.set()
     
     def turn_off(self):
-        self._run = False
-    
-    def current_status(self):
-        return self._run
-
-    def change_duty_cycle(self, amount):
-        self._pwm.ChangeDutyCycle(amount)
+        self._sense_event.clear()
     
     def shutdown(self):
+        self._sense_event.clear()
         self._pwm.stop()
         GPIO.cleanup()
 
     async def sense(self):
-        while self.current_status():
+        while True:
+            await self._sense_event.wait()
             #Trigger
             GPIO.output(PIN_TRIGGER, GPIO.HIGH)
-            sleep(0.00001)
+            await asyncio.sleep(0.00001)
             GPIO.output(PIN_TRIGGER, GPIO.LOW)
 
             while GPIO.input(PIN_ECHO) == 0:
@@ -58,20 +58,19 @@ class Lid:
             if distance < 10:
                 if not self._flag :
                     self._pwm.ChangeDutyCycle(7.5)
-                    sleep(5)
+                    await asyncio.sleep(5)
                     self._pwm.ChangeDutyCycle(4)
-                    sleep(1)
+                    await asyncio.sleep(1)
                 self._flag = True
             else:
                 self._flag = False
-
-            sleep(1)
+            await asyncio.sleep(1)
     
-try:
-    lid = Lid()
-    lid.sense()
-    sleep(5)
-    lid.turn_on()
-    lid.sense()
-finally:
-    lid.shutdown()
+# try:
+#     lid = Lid()
+#     lid.sense()
+#     sleep(5)
+#     lid.turn_on()
+#     lid.sense()
+# finally:
+#     lid.shutdown()
