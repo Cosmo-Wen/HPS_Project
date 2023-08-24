@@ -34,6 +34,7 @@ class Lid:
         self._sense_event.clear()
         self._pwm.stop()
         GPIO.cleanup()
+        print("DETECT SHUTDOWN")
 
     async def sense(self):
         while True:
@@ -64,6 +65,7 @@ class Lid:
                 self._flag = True
             else:
                 self._flag = False
+            print("Detecting...")
             await asyncio.sleep(1)
     
 # try:

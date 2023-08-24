@@ -34,28 +34,27 @@ async def process_instruction(instruction: Instructions = Instructions.INVALID, 
             # user_interface.reject_instruction(message = 'Currently turned off.')
             print('Currently turned off.')
     elif state == States.ONLINE:
-        match instruction:
-            case Instructions.START: 
-                # user_interface.reject_instruction(message = 'Already started.')
-                print('Already started.')
-            case Instructions.END: 
-                print('Ending...')
-                await asyncio.sleep(2)
-                status = Actions.HALT
-            case Instructions.MOVE:
-                print('Start moving...')
-                await asyncio.sleep(2)
-                print('End moving')
-            case Instructions.RETURN:
-                print('Start moving...')
-                await asyncio.sleep(2)
-                print('End moving')
-            case Instructions.INVALID:
-                # user_interface.reject_instruction(message = 'Invalid instruction')
-                print('Invalid instruction')
-            case _:
-                # user_interface.reject_instruction(message = 'Invalid instruction')
-                print('Invalid instruction')
+        if instruction ==  Instructions.START: 
+            # user_interface.reject_instruction(message = 'Already started.')
+            print('Already started.')
+        elif instruction ==  Instructions.END: 
+            print('Ending...')
+            await asyncio.sleep(2)
+            status = Actions.HALT
+        elif instruction ==  Instructions.MOVE:
+            print('Start moving...')
+            await asyncio.sleep(2)
+            print('End moving')
+        elif instruction ==  Instructions.RETURN:
+            print('Start moving...')
+            await asyncio.sleep(2)
+            print('End moving')
+        elif instruction ==  Instructions.INVALID:
+            # user_interface.reject_instruction(message = 'Invalid instruction')
+            print('Invalid instruction')
+        else:
+            # user_interface.reject_instruction(message = 'Invalid instruction')
+            print('Invalid instruction')
     
     return status
 
