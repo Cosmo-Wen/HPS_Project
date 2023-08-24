@@ -1,5 +1,4 @@
 import asyncio
-from time import time
 
 import RPi.GPIO as GPIO
 
@@ -45,10 +44,10 @@ class Lid:
             GPIO.output(PIN_TRIGGER, GPIO.LOW)
 
             while GPIO.input(PIN_ECHO) == 0:
-                pulse_start_time = time()
+                pulse_start_time = loop.get_event_loop().time()
 
             while GPIO.input(PIN_ECHO) == 1:
-                pulse_end_time = time()
+                pulse_end_time = loop.get_event_loop().time()
 
             pulse_duration = pulse_end_time - pulse_start_time
             
