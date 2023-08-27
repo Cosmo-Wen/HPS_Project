@@ -1,88 +1,80 @@
+import asyncio
+import numpy as np
 import RPi.GPIO as GPIO
-import time
 
-Full = 9
+FULL = 9
+SENSOR1_TRIGGER = 20
+SENSOR1_ECHO = 21
+SENSOR2_TRIGGER = 22
+SENSOR2_ECHO = 23
+ITERATIONS = 10
 
-def setup_sensor(trig_pin, echo_pin):
-    GPIO.setup(trig_pin, GPIO.OUT, initial=GPIO.LOW)
-    GPIO.setup(echo_pin, GPIO.IN)
+class Is_Full:
+    def __init__(self, trig_pin, echo_pin):
+        self._trigger = trig_pin
+        self._echo = echo_pin
+        GPIO.setup(self._trigger, GPIO.OUT, initial=GPIO.LOW)
+        GPIO.setup(self._echo, GPIO.IN)
 
-def check_distance(trig_pin, echo_pin):
-    GPIO.output(trig_pin, GPIO.HIGH)
-    time.sleep(0.00015)
-    GPIO.output(trig_pin, GPIO.LOW)
+
+    async def check_distance(self):
+        GPIO.output(self._trigger, GPIO.HIGH)
+        asyncio.sleep(0.00015)
+        GPIO.output(self._trigger, GPIO.LOW)
     
-    while not GPIO.input(echo_pin):
-        pass
-    t1 = time.time()
-    
-    while GPIO.input(echo_pin):
-        pass
-    t2 = time.time()
-    
-    distance = (t2 - t1) * 340 * 100 / 2
-    
-    # 限制測量距離在3cm到21cm之間，超出21cm時輸出垃圾桶已滿的值
-    if distance < 3:
-        distance = 3
-    elif distance > 21:
-        distance = Full - 0.5
-    
-    return distance
+        while not GPIO.input(self._echo):
+            pass
+        t1 = asyncio.get_event_loop().time()
+        
+        while GPIO.input(self._echo):
+            pass
+        t2 = asyncio.get_event_loop().time()
+        
+        distance = (t2 - t1) * 340 * 100 / 2
+        
+        # 限制測量距離在3cm到21cm之間，超出21cm時輸出垃圾桶已滿的值
+        if distance < 3:
+            distance = 3
+        elif distance > 21:
+            distance = FULL - 0.5
+        
+        asyncio.sleep(0.1)
+        
+        return distance
 
-# 計算平均值
-def get_mean(distances):
-    if distances:
-        return sum(distances) / len(distances)
-    else:
-        return None
+    # 獲取多次測量距離值列表
+    async def get_distance(self):
+        distances = [self.check_distance(self._trigger, self._echo) for i in range(ITERATIONS)]
+        return np.mean(distances)
 
-# 獲取多次測量距離值列表
-def get_distances(trig_pin, echo_pin, num_measurements):
-    distances = []
-    for _ in range(num_measurements):
-        distance = check_distance(trig_pin, echo_pin)
-        distances.append(distance)
-        time.sleep(0.1)
-    return distances
-
-def is_trash_can_full(reference_distance):
-    if reference_distance is not None:
-        print('平均距離：%0.2f 公分' % reference_distance)
-        if reference_distance < Full:
-            return True
+    def is_trash_can_full(self):
+        distance = self.get_distance()
+        if distance is not None:
+            print('平均距離：%0.2f 公分' % distance)
+            if distance < FULL:
+                return True
+            else:
+                return False
         else:
-            return False
+            print('無法確定參考距離')
+            return None
+    
+    def shutdown():
+        GPIO.cleanup()     
+        
+def detect_full(sensor1: Is_Full, sensor2: Is_Full):
+    if sensor1.is_trash_can_full() and sensor2.is_trash_can_full():
+        print('Trash can is full')
     else:
-        print('無法確定參考距離')
-        return None
+        print('Trash can is not full')   
+
+async def main():
+    try:
+        sensor1 = Is_Full(SENSOR1_TRIGGER, SENSOR1_ECHO)
+        sensor2 = Is_Full(SENSOR2_TRIGGER, SENSOR2_ECHO)
+        detect_full(sensor1, sensor2)
+    finally:
+        sensor1.shutdown()
 
 if __name__ == "__main__":
-    try:
-        sensor1_Trigger = 20
-        sensor1_Echo = 21
-        sensor2_Trigger = 22
-        sensor2_Echo = 23
-
-        GPIO.setmode(GPIO.BCM)
-        
-        setup_sensor(sensor1_Trigger, sensor1_Echo)
-        setup_sensor(sensor2_Trigger, sensor2_Echo)
-        
-        while True:
-            distances1 = get_distances(sensor1_Trigger, sensor1_Echo, 10)
-            distances2 = get_distances(sensor2_Trigger, sensor2_Echo, 10)
-            
-            reference_distance1 = get_mean(distances1)  # 使用平均值代替眾數
-            reference_distance2 = get_mean(distances2)  # 使用平均值代替眾數
-            
-            is_full_sensor1 = is_trash_can_full(reference_distance1)
-            is_full_sensor2 = is_trash_can_full(reference_distance2)
-            
-            if is_full_sensor1 and is_full_sensor2:
-                print('垃圾桶滿了')
-            else:
-                print('垃圾桶沒有滿')
-        
-    except KeyboardInterrupt:
-        GPIO.cleanup()
+    main()
