@@ -1,65 +1,93 @@
+import asyncio
+from aiohttp import web
+
+from .enums import Instructions
+
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
-app = Flask(__name__)
+class LineAPI:
+    def __init__(self):
+        self._app = Flask(__name__)
+        self._api = LineBotApi('Orj4xNTzu4lZEwnUuf5B1Sdez01KSPtyBo1UC1ZnpPS93AMguOYc4XkQuw1BqIIDdmgITw4guIGtkJJ98w/y3sUM3MqXFQoaXtpw4bzWVuB0fxdCa3a2sGzRVS2W+HqOJOHV8BIGzl3QQe3ygcw4hAdB04t89/1O/w1cDnyilFU=')
+        self._handler = WebhookHandler('551d866b1602853292a0c02b7ef8055c')
+        self._current_user = 'Ua228ca9743237fb1fb497b4b3d0247c9'
+        self.init_routes()
+        self._latest_message=''
+    
+    def init_routes(self):
+        @self._app.route("/callback", methods=['POST'])
+        def callback():
+            signature = request.headers['X-Line-Signature']
+            body = request.get_data(as_text=True)
+            try:
+                self._handler.handle(body, signature)
+            except InvalidSignatureError:
+                abort(400)
+            return 'OK'
 
-# 初始化全域變數，用來存儲最新的訊息內容
-latest_message = ""
+        @self._handler.add(MessageEvent, message=TextMessage)
+        def handle_message(event):
+            self._lastest_message = event.message.text  # 更新最新的訊息內容
+            self.shutdown_server()  # 呼叫自定義的結束函式
+    
+    async def listen(self):
+        self._app.run(port=8001)
+        return self._lastest_message
+    
+    def reject_instruction(self, message: str):
+        """Logs error messages
+        
+        Args: 
+            message: error message
+        
+        Returns: None
 
-# 設定Channel Access Token和Channel Secret
-line_bot_api = LineBotApi('Orj4xNTzu4lZEwnUuf5B1Sdez01KSPtyBo1UC1ZnpPS93AMguOYc4XkQuw1BqIIDdmgITw4guIGtkJJ98w/y3sUM3MqXFQoaXtpw4bzWVuB0fxdCa3a2sGzRVS2W+HqOJOHV8BIGzl3QQe3ygcw4hAdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('551d866b1602853292a0c02b7ef8055c')
+        Raises: None
+        """
+        text = TextSendMessage(text=f'Error: {message}.')
+        self._api.push_message(self._current_user, messages=text)
 
-# 發送訊息並開始監聽的函式
-def send_message_and_listen():
-    send_message_to_user('Ua228ca9743237fb1fb497b4b3d0247c9', "已開始監聽聊天訊息")#User_id
-    app.run()  # 開始伺服器運行
-    return lastest_message  # 回傳最新的訊息內容
+    def log_reply(self, message: str):
+        """Logs replying messages
+        
+        Args: 
+            message: error message
+        
+        Returns: None
 
-# 發送訊息的函式
-def send_message(msg):
-    send_message_to_user('Ua228ca9743237fb1fb497b4b3d0247c9', msg)
-    return "已傳送" + msg
+        Raises: None
+        """
+        text = TextSendMessage(text=f'Log: {message}')
+        self._api.push_message(self._current_user, messages=text)
 
-# 發送訊息給特定使用者的函式
-def send_message_to_user(user_id, message_text):
-    message = TextSendMessage(text=message_text)
-    line_bot_api.push_message(user_id, messages=message)
+    def shutdown_server(self):
+        func = request.environ.get('werkzeug.server.shutdown')
+        if func is None:
+            raise RuntimeError('Not running with the Werkzeug server')
+        func()
 
-# 處理 LINE 的 Webhook 訊息
-@app.route("/callback", methods=['POST'])
-def callback():
-    signature = request.headers['X-Line-Signature']
-    body = request.get_data(as_text=True)
-    try:
-        handler.handle(body, signature)
-    except InvalidSignatureError:
-        abort(400)
-    return 'OK'
+async def fetch_instructions(user_interface = None) -> Instructions:
+    """Temporary input method
 
-# 處理文字訊息的事件
-@handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
-    global lastest_message  # 使用全域變數來儲存最新的訊息內容
-    user_id = event.source.user_id# 這段可以解析出User_id然後放在第17行
-    message_text = event.message.text
-    lastest_message = message_text  # 更新最新的訊息內容
-    shutdown_server()  # 呼叫自定義的結束函式
+    Takes an terminal input and returns the instruction type depending on the input
 
-# 自定義的伺服器關閉函式
-def shutdown_server():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug server')
-    func()
+    Args: None
 
-if __name__ == "__main__":
-    # 呼叫 send_message_and_listen() 函式，開始發送訊息並監聽
-    target_1 = send_message_and_listen()
-    print("開始監聽的訊息內容：", target_1)
-
-    # 呼叫 send_message() 函式，發送 "hello" 訊息
-    target_2 = send_message("hello")
-    print("發送的訊息結果：", target_2)
+    Returns: 
+        instruction: Specific instruction type
+    
+    Raises: None
+    """
+    loop = asyncio.get_running_loop()
+    user_input = await user_interface.listen()
+    
+    if user_input == 'start': instruction = Instructions.START
+    elif user_input == 'end': instruction = Instructions.END
+    elif user_input == 'move': instruction = Instructions.MOVE
+    elif user_input == 'return': instruction = Instructions.RETURN
+    elif user_input == 'log': instruction = Instructions.LOG
+    else: instruction = Instructions.INVALID
+    return instruction
