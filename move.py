@@ -1,13 +1,13 @@
 import time
+import asyncio
 from gpiozero import Robot
 from gpiozero.pins.rpigpio import RPiGPIOFactory
 import RPi.GPIO as GPIO
-import test_1
+import directions
 import threading
 import math
-import time
 from SerialCapture import UWB3000Serial
-import test_1
+import directions
 # 設置超聲波感測器的引腳
 FRONT_TRIGGER_PIN = 20  # 前方超聲波感測器的 Trigger 引腳
 FRONT_ECHO_PIN = 21     # 前方超聲波感測器的 Echo 引腳
@@ -45,6 +45,10 @@ front_distance = 1000
 left_distance = 1000
 right_distance = 1000
 A_B_thread_enabled=True
+
+ser = UWB3000Serial('/dev/ttyUSB0',115200)
+ser.reset_input_buffer()
+
 def measure_distance(trigger_pin, echo_pin):
     GPIO.output(trigger_pin, GPIO.HIGH)
     time.sleep(0.00001)
@@ -52,11 +56,11 @@ def measure_distance(trigger_pin, echo_pin):
 
     while GPIO.input(echo_pin) == GPIO.LOW:
         pass
-    pulse_start = time.time()
+    pulse_start = asyncio.get_event_loop().time()
 
     while GPIO.input(echo_pin) == GPIO.HIGH:
         pass
-    pulse_end = time.time()
+    pulse_end = asyncio.get_event_loop().time()
 
     pulse_duration = pulse_end - pulse_start
     distance = (pulse_duration * 34300) / 2
@@ -128,9 +132,9 @@ def check_light():
         return True
     else:
         return False
-def Obstacle_avoidance():
+async def Obstacle_avoidance():
     Flag=False
-    print("*＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊****************************************")
+    print("*****************************************************************")
     update_distances_1()
     if not check_light():
         if right_distance<left_distance:
@@ -143,17 +147,17 @@ def Obstacle_avoidance():
             for i in range(5):
                 update_distances_1()
                 if check_light():
-                    test_1.F_30()
+                    directions.F_30()
                     return True
                 else:
-                    test_1.L_30()
-                    time.sleep(0.5)
+                    directions.L_30()
+                    await asyncio.sleep(0.5)
 
 
             if i==4:
                 update_distances_1()
                 if check_light():
-                    test_1.F_30()
+                    directions.F_30()
                     return True
                 return False
 
@@ -162,21 +166,18 @@ def Obstacle_avoidance():
                 update_distances_1()
                 if check_light():
                     print("**")
-                    test_1.F_30()
+                    directions.F_30()
                     return True
                 else:
-                    test_1.R_30()
-                    time.sleep(0.5)
+                    directions.R_30()
+                    await asyncio.sleep(0.5)
             if j==4:#往右邊
                 update_distances_1()
                 if check_light():
                     print("**")
-                    test_1.F_30()
+                    directions.F_30()
                     return True
                 return False
-
-ser = UWB3000Serial('/dev/ttyUSB0',115200)
-ser.reset_input_buffer()
 
 def get_intersection(s1, s2, s3):
     x = (s3**2 - s1**2)/(4*ROTATE_RADIUS)
@@ -192,25 +193,25 @@ def angle_count(angle):
     return int(angle/30)
 def distance_count(Dis):
     return int(Dis/30)
-def find_direction():
-    time.sleep(1)
+async def find_direction():
+    await asyncio.sleep(1)
     s1 = ser.read_distance()
     print('s1 = ', s1, 'cm')
     # rotate 90 逆時針
-    test_1.L_90()
+    directions.L_90()
     # input('Press enter after rotate 90deg counterclkwise')
     
-    time.sleep(1)
+    await asyncio.sleep(1)
     s2 = ser.read_distance()
     print('s2 = ', s2, 'cm')
     # rotate 90 逆時針
-    test_1.L_90()
+    directions.L_90()
     # input('Press enter after rotate 90deg counterclkwise')
     
-    time.sleep(1)
+    await asyncio.sleep(1)
     s3 = ser.read_distance()
     print('s3 = ', s3, 'cm')
-    test_1.R_180()
+    directions.R_180()
     # input('Press enter after rotate 180deg')
     
     
@@ -226,9 +227,9 @@ def find_direction():
 
     return distance, angle
 
-def A_B():
+async def A_B():
     # input("Press enter to start process")
-    time.sleep(1)
+    await asyncio.sleep(1)
 
     while True:
         distance = float(ser.read_distance())
@@ -249,10 +250,10 @@ def A_B():
             if angle < 0: 
                 angle = -angle
                 # 右轉angle
-                test_1.R_30_round(angle_count(angle))
+                directions.R_30_round(angle_count(angle))
             else:
                 # 左轉angle
-                test_1.L_30_round(angle_count(angle))
+                directions.L_30_round(angle_count(angle))
             # input('Press enter after car rotate ' + str(angle_to_rotate) + 'deg')
             distance_to_go = min(MAX_TRAVEL_DIST, FORWARD_STEP*math.ceil(0.5*distance/FORWARD_STEP))
             # car go
@@ -261,11 +262,11 @@ def A_B():
             for i in range(distance_count(distance_to_go)):
                 update_distances_1()
                 if left_distance > 30 and right_distance > 30 and front_distance > 30 :
-                    test_1.F_30()
+                    directions.F_30()
                 elif distance <= STOP_RADIUS:
                     return True
                 elif left_distance > 20 or right_distance > 20 or front_distance > 20:
-                    test_1.F_L()
+                    directions.F_L()
                     return False
                 else:
                     return False
@@ -274,18 +275,19 @@ def A_B():
     return True
         # input('Press enter after car go ' + str(distance_to_go) + 'cm')
 
+async def move():
+    print("按下 Ctrl+C 可停止程式")
+    while True :
+        Flag = await A_B()
+        if not Flag:
+            Flag=Obstacle_avoidance()
+        else:
+            break
 
 if __name__ == "__main__":
     try:
-        print("按下 Ctrl+C 可停止程式")
-        while True :
-            Flag=A_B()
-            if not Flag:
-                Flag=Obstacle_avoidance()
-            else:
-                break
-
+        asyncio.run(move())
     except KeyboardInterrupt:
         pass
     finally:
-        test_1.stop()
+        directions.stop()

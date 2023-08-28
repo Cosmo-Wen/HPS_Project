@@ -1,3 +1,4 @@
+import asyncio
 from gpiozero import Robot
 import getch
 import time
@@ -19,63 +20,63 @@ def move(speed_left, speed_right):
 def F():
     print("向前進")
     move(speed_left=BASE_SPEED, speed_right=BASE_SPEED - 0.1)
-def F_L():
+async def F_L():
     move(0.45, 0.45)
-    time.sleep(0.1)
+    await asyncio.sleep(0.1)
     robot.stop()
-    time.sleep(0.1)
-def F_30():
+    await asyncio.sleep(0.1)
+async def F_30():
     move(0.45, 0.45)
-    time.sleep(0.85)
+    await asyncio.sleep(0.85)
     robot.stop()
-    time.sleep(0.1)
+    await asyncio.sleep(0.1)
 def B():
     move(speed_left=-BASE_SPEED, speed_right=-BASE_SPEED + 0.1)
-def B_15():
+async def B_15():
     move( -0.4, speed_right=-0.3)
-    time.sleep(0.01)
+    await asyncio.sleep(0.01)
     robot.stop()
-def L_180():
+async def L_180():
     print("向左轉180")
     robot.value = (-0.6, 0.7)
-    time.sleep(0.5)
+    await asyncio.sleep(0.5)
     robot.value = (-0.3,0.4)
-    time.sleep(0.4)
+    await asyncio.sleep(0.4)
     robot.stop()
-def L_90():
+async def L_90():
     print("向左轉90")
     robot.value = (-0.6, 0.6)
-    time.sleep(0.28)
+    await asyncio.sleep(0.28)
     robot.value = (-0.4,0.4)
-    time.sleep(0.2)
+    await asyncio.sleep(0.2)
     robot.stop()
-def L_30():
+async def L_30():
     print("向左轉30")
     robot.value = (-0.5, 0.5)
-    time.sleep(0.18)
+    await asyncio.sleep(0.18)
     robot.stop()
-    time.sleep(0.1)
-def R_180():
+    await asyncio.sleep(0.1)
+async def R_180():
     print("向右轉180")
     robot.value = (0.7,-0.6)
-    time.sleep(0.5)
+    await asyncio.sleep(0.5)
     robot.value = (0.4,-0.3)
-    time.sleep(0.45)
+    await asyncio.sleep(0.45)
     robot.stop()
-    time.sleep(1)
-def R_90():
+    await asyncio.sleep(1)
+async def R_90():
     print("向右轉90")
     robot.value = (0.6,-0.6)
-    time.sleep(0.28)
+    await asyncio.sleep(0.28)
     robot.value = (0.4,-0.4)
-    time.sleep(0.2)
+    await asyncio.sleep(0.2)
     robot.stop()
-def R_30():
+async def R_30():
     print("向右轉30")
     robot.value = (0.5,-0.5)
-    time.sleep(0.2) 
+    await asyncio.sleep(0.2) 
     robot.stop()
-    time.sleep(0.1)
+    await asyncio.sleep(0.1)
 def R_30_round(num):
     for i in range(num):
         R_30()
