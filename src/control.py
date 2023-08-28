@@ -2,12 +2,16 @@ import asyncio
 
 import RPi.GPIO as GPIO
 
+from is_full import Is_Full, detect_full
 
 PIN_TRIGGER = 7
 PIN_ECHO = 11
 PIN_SERVO = 12
-
-
+PIN_LIGHT = 2
+SENSOR1_TRIGGER = 20
+SENSOR1_ECHO = 21
+SENSOR2_TRIGGER = 22
+SENSOR2_ECHO = 23
 
 class Lid:
     def __init__(self):
@@ -36,6 +40,8 @@ class Lid:
         print("DETECT SHUTDOWN")
 
     async def sense(self):
+        sensor1 = Is_Full(SENSOR1_TRIGGER, SENSOR1_ECHO)
+        sensor2 = Is_Full(SENSOR2_TRIGGER, SENSOR2_ECHO)
         while True:
             await self._sense_event.wait()
             #Trigger
@@ -58,6 +64,10 @@ class Lid:
             if distance < 10:
                 if not self._flag :
                     self._pwm.ChangeDutyCycle(7.5)
+                    await asyncio.sleep(1)
+                    full = await detect_full(sensor1, sensor2)
+                    if full: GPIO.output(PIN_LIGHT, GPIO.HIGH)
+                    else: GPIO.output(PIN_LIGHT, GPIO.LOW)
                     await asyncio.sleep(5)
                     self._pwm.ChangeDutyCycle(4)
                     await asyncio.sleep(1)
