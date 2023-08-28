@@ -62,14 +62,3 @@ def detect_full(sensor1: Is_Full, sensor2: Is_Full):
         return True
     else:
         return False 
-
-async def main():
-    try:
-        sensor1 = Is_Full(SENSOR1_TRIGGER, SENSOR1_ECHO)
-        sensor2 = Is_Full(SENSOR2_TRIGGER, SENSOR2_ECHO)
-        detect_full(sensor1, sensor2)
-    finally:
-        sensor1.shutdown()
-
-if __name__ == "__main__":
-    main()
