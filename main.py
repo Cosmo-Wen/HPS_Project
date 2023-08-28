@@ -1,11 +1,12 @@
 import asyncio
 
-from header import Instructions, States, Actions
-from src.user_interface import fetch_instructions, log_reply, reject_instruction
+from src.enums import Instructions, States, Actions
+from src.user_interface import fetch_instructions
+from src.control import Lid # Control Module
+# from src.testDetect import Lid # Ideal Result
 
-
-async def process_instruction(instruction: Instructions = Instructions.INVALID, state: States = States.INVALID):
-    """ Processes the current instruction depending on the stastarte
+async def process_instruction(instruction: Instructions = Instructions.INVALID, state: States = States.INVALID, user_interface = None):
+    """ Processes the current instruction depending on the state
 
     Retrieve the instruction and the state
     Processes and logs the relevant actions
@@ -24,37 +25,41 @@ async def process_instruction(instruction: Instructions = Instructions.INVALID, 
 
     if state == States.IDLE:
         if instruction == Instructions.INVALID:
-            reject_instruction(message = 'Invalid instruction')
+            # user_interface.reject_instruction(message = 'Invalid instruction')
+            print('Invalid instruction')
         elif instruction == Instructions.START:
             print('Starting...')
-            await asyncio.sleep(2)
+            await asyncio.sleep(5)
             print('Started')
         else: 
-            reject_instruction(message = 'Currently turned off.')
-    
+            # user_interface.reject_instruction(message = 'Currently turned off.')
+            print('Currently turned off.')
     elif state == States.ONLINE:
-            if instruction == Instructions.START: 
-                reject_instruction(message = 'Already started.')
-            elif instruction == Instructions.END: 
-                print('Ending...')
-                await asyncio.sleep(2)
-                status = Actions.HALT
-            elif instruction == Instructions.MOVE:
-                print('Start moving...')
-                await asyncio.sleep(2)
-                print('End moving')
-            elif instruction == Instructions.RETURN:
-                print('Start moving...')
-                await asyncio.sleep(2)
-                print('End moving')
-            elif instruction == Instructions.INVALID:
-                reject_instruction(message = 'Invalid instruction')
-            else:
-                reject_instruction(message = 'Invalid instruction')
+        if instruction ==  Instructions.START: 
+            # user_interface.reject_instruction(message = 'Already started.')
+            print('Already started.')
+        elif instruction ==  Instructions.END: 
+            print('Ending...')
+            await asyncio.sleep(2)
+            status = Actions.HALT
+        elif instruction ==  Instructions.MOVE:
+            print('Start moving...')
+            await asyncio.sleep(2)
+            print('End moving')
+        elif instruction ==  Instructions.RETURN:
+            print('Start moving...')
+            await asyncio.sleep(2)
+            print('End moving')
+        elif instruction ==  Instructions.INVALID:
+            # user_interface.reject_instruction(message = 'Invalid instruction')
+            print('Invalid instruction')
+        else:
+            # user_interface.reject_instruction(message = 'Invalid instruction')
+            print('Invalid instruction')
     
     return status
 
-async def instruction_consumer(queue: asyncio.Queue) -> None:
+async def instruction_consumer(queue: asyncio.Queue, user_interface = None, lid = None) -> None:
     """ Retrieve instruction from the queue and call relevant processing methods
 
     Asynchronously retrieve instructions from the queue
@@ -70,43 +75,64 @@ async def instruction_consumer(queue: asyncio.Queue) -> None:
     Raises: None
     """
     while True:
-        instruction, state = await queue.get()
+        item = await queue.get()
+        if item is None:
+            break
+        instruction, state = item
+        if state == States.ONLINE:
+            lid.turn_off()
         if instruction == Instructions.LOG:
             print(f'Queue contents: {list(queue._queue)}')
             continue
-
-        result = await process_instruction(instruction, state)
+        
+        result = await process_instruction(instruction, state) # user_interface
         if result == Actions.HALT:
             print("Clearing the queue...")
             queue._queue.clear()
             print('Ended')
-        queue.task_done()
-        log_reply(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
+        
+        queue.task_done() 
+        if state == States.ONLINE and queue.empty() and result != Actions.HALT:
+            lid.turn_on()
+            
+        # user_interface.log_reply(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
+        print(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
 
 async def main():
-    instruction_queue = asyncio.Queue()
+    try:
+        instruction_queue = asyncio.Queue()
+        # user_interface = LineAPI()
+        lid_control = Lid()
 
-    # Instruction Queue
-    instruction_queue_task = asyncio.create_task(instruction_consumer(instruction_queue))
-    # Human Detection
-    # detection_task = asyncio.create_task()
-   
-    state = States.IDLE
+        # Instruction Queue
+        instruction_queue_task = asyncio.create_task(instruction_consumer(instruction_queue, lid = lid_control))
+        # Human Detection
+        detection_task = asyncio.create_task(lid_control.sense())
 
-    while True:
-        instruction: Instructions = await fetch_instructions()
-        await instruction_queue.put((instruction, state))
-        log_reply(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
+        shutdown = False
+        state = States.IDLE
 
-        if state == States.IDLE and instruction == Instructions.START:
-            state = States.ONLINE
-        elif state == States.ONLINE and instruction == Instructions.END:
-            state = States.IDLE
+        while not shutdown:
+            instruction: Instructions = await fetch_instructions()
+            await instruction_queue.put((instruction, state))
+            # user_interface.send_message(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
+            print(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
+            if instruction == Instructions.SHUTDOWN:
+                shutdown = True
+            elif state == States.IDLE and instruction == Instructions.START:
+                state = States.ONLINE
+                lid_control.turn_on()
+            elif state == States.ONLINE and instruction == Instructions.END:
+                state = States.IDLE
+                lid_control.turn_off()
+        
+        await instruction_queue.join()
 
-    await instruction_queue.join()
-
-    await instruction_queue.put(None)
-    await consumer_task
+        await instruction_queue.put(None)
+        await instruction_queue_task
+        await detection_task
+    finally:
+        lid_control.shutdown()
 
 if __name__ == '__main__':
     asyncio.run(main())
