@@ -1,7 +1,7 @@
 import asyncio
 
 from src.enums import Instructions, States, Actions
-from src.LineAPI import LineAPI, fetch_instructions
+from src.user_interface import fetch_instructions, log_reply, reject_instruction
 
 
 async def process_instruction(instruction: Instructions = Instructions.INVALID, state: States = States.INVALID, user_interface = None):
