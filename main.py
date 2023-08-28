@@ -3,7 +3,7 @@ import asyncio
 from src.enums import Instructions, States, Actions
 from src.user_interface import fetch_instructions
 from src.control import Lid # Control Module
-# from src.testDetect    import Lid # Ideal Result
+# from src.testDetect import Lid # Ideal Result
 
 async def process_instruction(instruction: Instructions = Instructions.INVALID, state: States = States.INVALID, user_interface = None):
     """ Processes the current instruction depending on the state
