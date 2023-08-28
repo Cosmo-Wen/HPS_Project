@@ -4,8 +4,8 @@ from src.enums import Instructions, States, Actions
 from src.user_interface import fetch_instructions, log_reply, reject_instruction
 
 
-async def process_instruction(instruction: Instructions = Instructions.INVALID, state: States = States.INVALID, user_interface = None):
-    """ Processes the current instruction depending on the state
+async def process_instruction(instruction: Instructions = Instructions.INVALID, state: States = States.INVALID):
+    """ Processes the current instruction depending on the stastarte
 
     Retrieve the instruction and the state
     Processes and logs the relevant actions
@@ -24,17 +24,17 @@ async def process_instruction(instruction: Instructions = Instructions.INVALID, 
 
     if state == States.IDLE:
         if instruction == Instructions.INVALID:
-            user_interface.reject_instruction(message = 'Invalid instruction')
+            reject_instruction(message = 'Invalid instruction')
         elif instruction == Instructions.START:
             print('Starting...')
             await asyncio.sleep(2)
             print('Started')
         else: 
-            user_interface.reject_instruction(message = 'Currently turned off.')
+            reject_instruction(message = 'Currently turned off.')
     
     elif state == States.ONLINE:
             if instruction == Instructions.START: 
-                user_interface.reject_instruction(message = 'Already started.')
+                reject_instruction(message = 'Already started.')
             elif instruction == Instructions.END: 
                 print('Ending...')
                 await asyncio.sleep(2)
@@ -48,13 +48,13 @@ async def process_instruction(instruction: Instructions = Instructions.INVALID, 
                 await asyncio.sleep(2)
                 print('End moving')
             elif instruction == Instructions.INVALID:
-                user_interface.reject_instruction(message = 'Invalid instruction')
+                reject_instruction(message = 'Invalid instruction')
             else:
-                user_interface.reject_instruction(message = 'Invalid instruction')
+                reject_instruction(message = 'Invalid instruction')
     
     return status
 
-async def instruction_consumer(queue: asyncio.Queue, user_interface) -> None:
+async def instruction_consumer(queue: asyncio.Queue) -> None:
     """ Retrieve instruction from the queue and call relevant processing methods
 
     Asynchronously retrieve instructions from the queue
@@ -69,37 +69,34 @@ async def instruction_consumer(queue: asyncio.Queue, user_interface) -> None:
 
     Raises: None
     """
-    print("IC hello")
     while True:
-        print(len(queue._queue))
         instruction, state = await queue.get()
         if instruction == Instructions.LOG:
             print(f'Queue contents: {list(queue._queue)}')
             continue
 
-        result = await process_instruction(instruction, state, user_interface)
+        result = await process_instruction(instruction, state)
         if result == Actions.HALT:
             print("Clearing the queue...")
             queue._queue.clear()
             print('Ended')
         queue.task_done()
-        user_interface.log_reply(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
+        log_reply(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
 
 async def main():
     instruction_queue = asyncio.Queue()
-    user_interface = LineAPI()
 
     # Instruction Queue
-    instruction_queue_task = asyncio.create_task(instruction_consumer(instruction_queue, user_interface))
+    instruction_queue_task = asyncio.create_task(instruction_consumer(instruction_queue))
     # Human Detection
     # detection_task = asyncio.create_task()
    
     state = States.IDLE
 
     while True:
-        instruction: Instructions = await fetch_instructions(user_interface)
+        instruction: Instructions = await fetch_instructions()
         await instruction_queue.put((instruction, state))
-        user_interface.log_reply(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
+        log_reply(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
 
         if state == States.IDLE and instruction == Instructions.START:
             state = States.ONLINE
