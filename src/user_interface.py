@@ -1,6 +1,6 @@
 import asyncio
 
-from .enums import Instructions
+from .header import Instructions
 
 async def fetch_instructions() -> Instructions:
     """Temporary input method

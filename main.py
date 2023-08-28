@@ -1,6 +1,6 @@
 import asyncio
 
-from src.enums import Instructions, States, Actions
+from header import Instructions, States, Actions
 from src.user_interface import fetch_instructions, log_reply, reject_instruction
 
 
