@@ -8,11 +8,12 @@ import threading
 import math
 from SerialCapture import UWB3000Serial
 import directions
+
 # 設置超聲波感測器的引腳
-FRONT_TRIGGER_PIN = 20  # 前方超聲波感測器的 Trigger 引腳
-FRONT_ECHO_PIN = 21     # 前方超聲波感測器的 Echo 引腳
-LEFT_TRIGGER_PIN = 22   # 左方超聲波感測器的 Trigger 引腳
-LEFT_ECHO_PIN = 23      # 左方超聲波感測器的 Echo 引腳
+FRONT_TRIGGER_PIN = 5  # 前方超聲波感測器的 Trigger 引腳
+FRONT_ECHO_PIN = 6     # 前方超聲波感測器的 Echo 引腳
+LEFT_TRIGGER_PIN = 13   # 左方超聲波感測器的 Trigger 引腳
+LEFT_ECHO_PIN = 19      # 左方超聲波感測器的 Echo 引腳
 RIGHT_TRIGGER_PIN = 24  # 右方超聲波感測器的 Trigger 引腳
 RIGHT_ECHO_PIN = 25     # 右方超聲波感測器的 Echo 引腳
 
@@ -147,17 +148,17 @@ async def Obstacle_avoidance():
             for i in range(5):
                 update_distances_1()
                 if check_light():
-                    directions.F_30()
+                    await directions.F_30()
                     return True
                 else:
-                    directions.L_30()
+                    await directions.L_30()
                     await asyncio.sleep(0.5)
 
 
             if i==4:
                 update_distances_1()
                 if check_light():
-                    directions.F_30()
+                    await directions.F_30()
                     return True
                 return False
 
@@ -166,16 +167,16 @@ async def Obstacle_avoidance():
                 update_distances_1()
                 if check_light():
                     print("**")
-                    directions.F_30()
+                    await directions.F_30()
                     return True
                 else:
-                    directions.R_30()
+                    await directions.R_30()
                     await asyncio.sleep(0.5)
             if j==4:#往右邊
                 update_distances_1()
                 if check_light():
                     print("**")
-                    directions.F_30()
+                    await directions.F_30()
                     return True
                 return False
 
@@ -198,20 +199,20 @@ async def find_direction():
     s1 = ser.read_distance()
     print('s1 = ', s1, 'cm')
     # rotate 90 逆時針
-    directions.L_90()
+    await directions.L_90()
     # input('Press enter after rotate 90deg counterclkwise')
     
     await asyncio.sleep(1)
     s2 = ser.read_distance()
     print('s2 = ', s2, 'cm')
     # rotate 90 逆時針
-    directions.L_90()
+    await directions.L_90()
     # input('Press enter after rotate 90deg counterclkwise')
     
     await asyncio.sleep(1)
     s3 = ser.read_distance()
     print('s3 = ', s3, 'cm')
-    directions.R_180()
+    await directions.R_180()
     # input('Press enter after rotate 180deg')
     
     
@@ -240,7 +241,7 @@ async def A_B():
         else:
             print('distance isn\'t close enough, keep going')
             # input('Press enter to start measure process')
-            distance, angle = find_direction()
+            distance, angle = await find_direction()
             print('distance = ', distance, 'cm')
             print('angle = ', angle, 'deg')
 
@@ -250,10 +251,10 @@ async def A_B():
             if angle < 0: 
                 angle = -angle
                 # 右轉angle
-                directions.R_30_round(angle_count(angle))
+                await directions.R_30_round(angle_count(angle))
             else:
                 # 左轉angle
-                directions.L_30_round(angle_count(angle))
+                await directions.L_30_round(angle_count(angle))
             # input('Press enter after car rotate ' + str(angle_to_rotate) + 'deg')
             distance_to_go = min(MAX_TRAVEL_DIST, FORWARD_STEP*math.ceil(0.5*distance/FORWARD_STEP))
             # car go
@@ -262,11 +263,11 @@ async def A_B():
             for i in range(distance_count(distance_to_go)):
                 update_distances_1()
                 if left_distance > 30 and right_distance > 30 and front_distance > 30 :
-                    directions.F_30()
+                    await directions.F_30()
                 elif distance <= STOP_RADIUS:
                     return True
                 elif left_distance > 20 or right_distance > 20 or front_distance > 20:
-                    directions.F_L()
+                    await directions.F_L()
                     return False
                 else:
                     return False
@@ -280,7 +281,7 @@ async def move():
     while True :
         Flag = await A_B()
         if not Flag:
-            Flag=Obstacle_avoidance()
+            Flag = await Obstacle_avoidance()
         else:
             break
 
