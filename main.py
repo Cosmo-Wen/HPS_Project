@@ -1,5 +1,5 @@
 import asyncio
-
+from src.move import move
 from src.enums import Instructions, States, Actions
 from src.user_interface import fetch_instructions
 from src.control import Lid # Control Module
@@ -43,9 +43,7 @@ async def process_instruction(instruction: Instructions = Instructions.INVALID, 
             await asyncio.sleep(2)
             status = Actions.HALT
         elif instruction ==  Instructions.MOVE:
-            print('Start moving...')
-            await asyncio.sleep(2)
-            print('End moving')
+            await move()
         elif instruction ==  Instructions.RETURN:
             print('Start moving...')
             await asyncio.sleep(2)

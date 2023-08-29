@@ -2,11 +2,11 @@ import asyncio
 
 import RPi.GPIO as GPIO
 
-from is_full import Is_Full, detect_full
+from .is_full import Is_Full, detect_full
 
-PIN_TRIGGER = 7
-PIN_ECHO = 11
-PIN_SERVO = 12
+PIN_TRIGGER = 4
+PIN_ECHO = 17
+PIN_SERVO = 18
 PIN_LIGHT = 2
 SENSOR1_TRIGGER = 20
 SENSOR1_ECHO = 21
@@ -19,10 +19,11 @@ class Lid:
         self._sense_event = asyncio.Event()
         self._sense_event.clear()
 
-        GPIO.setmode(GPIO.BOARD)
+        GPIO.setmode(GPIO.BCM)
         GPIO.setup(PIN_TRIGGER, GPIO.OUT)
         GPIO.setup(PIN_ECHO, GPIO.IN)
         GPIO.setup(PIN_SERVO, GPIO.OUT)
+        GPIO.setup(PIN_LIGHT, GPIO.OUT)
 
         self._pwm = GPIO.PWM(PIN_SERVO, 50)
         self._pwm.start(4)
@@ -66,8 +67,14 @@ class Lid:
                     self._pwm.ChangeDutyCycle(7.5)
                     await asyncio.sleep(1)
                     full = await detect_full(sensor1, sensor2)
-                    if full: GPIO.output(PIN_LIGHT, GPIO.HIGH)
-                    else: GPIO.output(PIN_LIGHT, GPIO.LOW)
+                    print(full)
+                    if full:
+                        print("FULL")
+                        GPIO.output(PIN_LIGHT, GPIO.HIGH)
+                        print("FULL")
+                    else: 
+                        GPIO.output(PIN_LIGHT, GPIO.LOW)
+                        print("not FULL")
                     await asyncio.sleep(5)
                     self._pwm.ChangeDutyCycle(4)
                     await asyncio.sleep(1)
@@ -76,12 +83,3 @@ class Lid:
                 self._flag = False
             print("Detecting...")
             await asyncio.sleep(1)
-    
-# try:
-#     lid = Lid()
-#     lid.sense()
-#     sleep(5)
-#     lid.turn_on()
-#     lid.sense()
-# finally:
-#     lid.shutdown()
