@@ -3,15 +3,7 @@ import asyncio
 import RPi.GPIO as GPIO
 
 from .is_full import Is_Full, detect_full
-
-PIN_TRIGGER = 4
-PIN_ECHO = 17
-PIN_SERVO = 18
-PIN_LIGHT = 2
-SENSOR1_TRIGGER = 20
-SENSOR1_ECHO = 21
-SENSOR2_TRIGGER = 22
-SENSOR2_ECHO = 23
+from .header import *
 
 class Lid:
     def __init__(self):
@@ -20,12 +12,12 @@ class Lid:
         self._sense_event.clear()
 
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(PIN_TRIGGER, GPIO.OUT)
-        GPIO.setup(PIN_ECHO, GPIO.IN)
-        GPIO.setup(PIN_SERVO, GPIO.OUT)
-        GPIO.setup(PIN_LIGHT, GPIO.OUT)
+        GPIO.setup(LID_TRIG, GPIO.OUT)
+        GPIO.setup(LID_ECHO, GPIO.IN)
+        GPIO.setup(LID_SERVO, GPIO.OUT)
+        GPIO.setup(DEPTH_LED, GPIO.OUT)
 
-        self._pwm = GPIO.PWM(PIN_SERVO, 50)
+        self._pwm = GPIO.PWM(LID_SERVO, 50)
         self._pwm.start(4)
     
     def turn_on(self):
@@ -41,19 +33,19 @@ class Lid:
         print("DETECT SHUTDOWN")
 
     async def sense(self):
-        sensor1 = Is_Full(SENSOR1_TRIGGER, SENSOR1_ECHO)
-        sensor2 = Is_Full(SENSOR2_TRIGGER, SENSOR2_ECHO)
+        sensor1 = Is_Full(DEPTH_SENSOR1_TRIG, DEPTH_SENSOR1_ECHO)
+        sensor2 = Is_Full(DEPTH_SENSOR2_TRIG, DEPTH_SENSOR2_ECHO)
         while True:
             await self._sense_event.wait()
             #Trigger
-            GPIO.output(PIN_TRIGGER, GPIO.HIGH)
+            GPIO.output(LID_TRIG, GPIO.HIGH)
             await asyncio.sleep(0.00001)
-            GPIO.output(PIN_TRIGGER, GPIO.LOW)
+            GPIO.output(LID_TRIG, GPIO.LOW)
 
-            while GPIO.input(PIN_ECHO) == 0:
+            while GPIO.input(LID_ECHO) == 0:
                 pulse_start_time = asyncio.get_event_loop().time()
 
-            while GPIO.input(PIN_ECHO) == 1:
+            while GPIO.input(LID_ECHO) == 1:
                 pulse_end_time = asyncio.get_event_loop().time()
 
             pulse_duration = pulse_end_time - pulse_start_time
@@ -70,10 +62,10 @@ class Lid:
                     print(full)
                     if full:
                         print("FULL")
-                        GPIO.output(PIN_LIGHT, GPIO.HIGH)
+                        GPIO.output(DEPTH_LED, GPIO.HIGH)
                         print("FULL")
                     else: 
-                        GPIO.output(PIN_LIGHT, GPIO.LOW)
+                        GPIO.output(DEPTH_LED, GPIO.LOW)
                         print("not FULL")
                     await asyncio.sleep(5)
                     self._pwm.ChangeDutyCycle(4)

@@ -3,19 +3,13 @@ import numpy as np
 import RPi.GPIO as GPIO
 import time
 
-FULL = 9
-SENSOR1_TRIGGER = 20
-SENSOR1_ECHO = 21
-SENSOR2_TRIGGER = 22
-SENSOR2_ECHO = 23
-ITERATIONS = 10
+from .header import *
 
 class Is_Full:
     def __init__(self, trig_pin, echo_pin):
         self._trigger = trig_pin
         self._echo = echo_pin
         GPIO.setmode(GPIO.BCM)
-
 
     async def check_distance(self):        
         
@@ -39,19 +33,20 @@ class Is_Full:
         if distance < 3:
             distance = 3
         elif distance > 21:
-            distance = FULL - 0.5
+            distance = AVOID_FULL - 0.5
         await asyncio.sleep(0.1)
         return distance
 
     # 獲取多次測量距離值列表
     async def get_distance(self):
-        distances = [await self.check_distance() for i in range(ITERATIONS)]
+        distances = [await self.check_distance() for i in range(DEPTH_SAMPLE)]
         return np.mean(distances)
+    
     async def is_trash_can_full(self):
         distance = await self.get_distance()
         if distance is not None:
             print('平均距離：%0.2f 公分' % distance)
-            if distance < FULL:
+            if distance < AVOID_FULL:
                 return True
             else:
                 return False
