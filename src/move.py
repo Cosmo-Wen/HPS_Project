@@ -6,7 +6,7 @@ import RPi.GPIO as GPIO
 
 from .directions import *
 import math
-from .SerialCapture import UWB3000Serial
+from .serial_capture import UWB3000Serial
 
 # 初始化 RPigpioFactory
 # TODO 
