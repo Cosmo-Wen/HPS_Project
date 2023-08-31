@@ -51,7 +51,7 @@ class Main:
                 await asyncio.sleep(2)
                 status = Actions.HALT
             elif instruction ==  Instructions.MOVE:
-                await move()
+                await self._move.move()
             elif instruction ==  Instructions.RETURN:
                 print('Start moving...')
                 await asyncio.sleep(2)
