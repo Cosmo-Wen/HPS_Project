@@ -10,7 +10,6 @@ from src.control import Lid # Control Module
 class Main:
     def __init__(self):
         GPIO.setmode(GPIO.BCM)
-        self._lid_control = Lid()
         self._move = Move()
 
     async def process_instruction(self, instruction: Instructions = Instructions.INVALID, state: States = States.INVALID):
@@ -106,18 +105,18 @@ class Main:
     
     def shutdown(self):
         GPIO.cleanup()
-        self._lid_control.shutdown()
         self._move.shutdown()
 
     async def run(self):
         try:
             instruction_queue = asyncio.Queue()
+            lid_control = Lid()
             # user_interface = LineAPI()
 
             # Instruction Queue
-            instruction_queue_task = asyncio.create_task(self.instruction_consumer(instruction_queue, lid = self._lid_control))
+            instruction_queue_task = asyncio.create_task(self.instruction_consumer(instruction_queue, lid = lid_control))
             # Human Detection
-            detection_task = asyncio.create_task(self._lid_control.sense())
+            detection_task = asyncio.create_task(lid_control.sense())
 
             shutdown = False
             state = States.IDLE
@@ -129,10 +128,10 @@ class Main:
                 print(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
                 if state == States.IDLE and instruction == Instructions.START:
                     state = States.ONLINE
-                    self._lid_control.turn_on()
+                    lid_control.turn_on()
                 elif state == States.ONLINE and instruction == Instructions.END:
                     state = States.IDLE
-                    self._lid_control.turn_off()
+                    lid_control.turn_off()
             
             await instruction_queue.join()
 
