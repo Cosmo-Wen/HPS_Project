@@ -114,9 +114,7 @@ async def main():
             await instruction_queue.put((instruction, state))
             # user_interface.send_message(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
             print(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
-            if instruction == Instructions.SHUTDOWN:
-                shutdown = True
-            elif state == States.IDLE and instruction == Instructions.START:
+            if state == States.IDLE and instruction == Instructions.START:
                 state = States.ONLINE
                 lid_control.turn_on()
             elif state == States.ONLINE and instruction == Instructions.END:
