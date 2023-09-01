@@ -38,7 +38,6 @@ class Directions:
         self._robot.stop()
 
     async def L_180(self):
-        print("向左轉180")
         self._robot.value = (-0.6, 0.7)
         await asyncio.sleep(0.5)
         self._robot.value = (-0.3,0.4)
@@ -46,7 +45,6 @@ class Directions:
         self._robot.stop()
 
     async def L_90(self):
-        print("向左轉90")
         self._robot.value = (-0.6, 0.6)
         await asyncio.sleep(0.28)
         self._robot.value = (-0.4,0.4)
@@ -54,14 +52,12 @@ class Directions:
         self._robot.stop()
 
     async def L_30(self):
-        print("向左轉30")
         self._robot.value = (-0.5, 0.5)
         await asyncio.sleep(0.18)
         self._robot.stop()
         await asyncio.sleep(0.1)
 
     async def R_180(self):
-        print("向右轉180")
         self._robot.value = (0.7,-0.6)
         await asyncio.sleep(0.5)
         self._robot.value = (0.4,-0.3)
@@ -70,7 +66,6 @@ class Directions:
         await asyncio.sleep(1)
 
     async def R_90(self):
-        print("向右轉90")
         self._robot.value = (0.6,-0.6)
         await asyncio.sleep(0.28)
         self._robot.value = (0.4,-0.4)
@@ -78,7 +73,6 @@ class Directions:
         self._robot.stop()
 
     async def R_30(self):
-        print("向右轉30")
         self._robot.value = (0.5,-0.5)
         await asyncio.sleep(0.2) 
         self._robot.stop()

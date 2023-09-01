@@ -42,7 +42,6 @@ class Move():
 
         pulse_duration = pulse_end - pulse_start
         distance = (pulse_duration * 34300) / 2
-        # print(distance)
         return min(distance, AVOID_MAX_DISTANCE)
 
     def update_distances_1(self):
@@ -50,8 +49,7 @@ class Move():
         front_distance = self.measure_distance(AVOID_FRONT_TRIG, AVOID_FRONT_ECHO)
         left_distance = self.measure_distance(AVOID_LEFT_TRIG, AVOID_LEFT_ECHO)
         right_distance = self.measure_distance(AVOID_RIGHT_TRIG, AVOID_RIGHT_ECHO)
-        print("前方距離：{} 厘米，左側距離：{} 厘米，右側距離：{} 厘米".format(front_distance, left_distance, right_distance))
-
+        
     def check_light(self):
         self.update_distances_1()
         if left_distance > AVOID_MAX_RL and right_distance > AVOID_MAX_RL and front_distance > AVOID_MAX_F  :
@@ -61,7 +59,6 @@ class Move():
 
     async def Obstacle_avoidance(self):
         Flag = False
-        print("*****************************************************************")
         self.update_distances_1()
         if not self._check_light():
             if right_distance<left_distance:
@@ -92,7 +89,6 @@ class Move():
                 for j in range(5):
                     self.update_distances_1()
                     if self.check_light():
-                        print("**")
                         await self._direction.F_30()
                         return True
                     else:
@@ -101,7 +97,6 @@ class Move():
                 if j==4:#往右邊
                     self.update_distances_1()
                     if self.check_light():
-                        print("**")
                         await self._direction.F_30()
                         return True
                     return False
@@ -125,21 +120,18 @@ class Move():
     async def find_direction(self):
         await asyncio.sleep(1)
         s1 = self._ser.read_distance()
-        print('s1 = ', s1, 'cm')
         # rotate 90 逆時針
         await self._direction.L_90()
         # input('Press enter after rotate 90deg counterclkwise')
         
         await asyncio.sleep(1)
         s2 = self._ser.read_distance()
-        print('s2 = ', s2, 'cm')
         # rotate 90 逆時針
         await self._direction.L_90()
         # input('Press enter after rotate 90deg counterclkwise')
         
         await asyncio.sleep(1)
         s3 = self._ser.read_distance()
-        print('s3 = ', s3, 'cm')
         await self._direction.R_180()
         # input('Press enter after rotate 180deg')
         
@@ -167,12 +159,8 @@ class Move():
                 break
 
             else:
-                print('distance isn\'t close enough, keep going')
-                # input('Press enter to start measure process')
                 distance, angle = await self.find_direction()
-                print('distance = ', distance, 'cm')
-                print('angle = ', angle, 'deg')
-
+                
                 angle_to_rotate = MOTOR_TURN_DEG * round(angle / MOTOR_TURN_DEG)
                 # car rotate
                 # 此處angl介於-180到180
@@ -187,7 +175,6 @@ class Move():
                 distance_to_go = min(MOTOR_MAX_TRAVEL_DIST, MOTOR_FORWARD*math.ceil(0.5*distance/MOTOR_FORWARD))
                 # car go
                 self.update_distances_1()
-                print("前方距離：{} 厘米，左側距離：{} 厘米，右側距離：{} 厘米".format(front_distance, left_distance, right_distance))
                 for i in range(self.distance_count(distance_to_go)):
                     self.update_distances_1()
                     if left_distance > 30 and right_distance > 30 and front_distance > 30 :
@@ -199,13 +186,11 @@ class Move():
                         return False
                     else:
                         return False
-        print('good! distance satisfied')
         self._ser.close()
         return True
             # input('Press enter after car go ' + str(distance_to_go) + 'cm')
 
     async def move(self):
-        print("按下 Ctrl+C 可停止程式")
         while True :
             Flag = await self.A_B()
             if not Flag:

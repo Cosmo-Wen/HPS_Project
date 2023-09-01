@@ -30,7 +30,6 @@ class Lid:
         self._sense_event.clear()
         self._pwm.stop()
         GPIO.cleanup()
-        print("DETECT SHUTDOWN")
 
     async def sense(self):
         sensor1 = Is_Full(DEPTH_SENSOR1_TRIG, DEPTH_SENSOR1_ECHO)
@@ -51,27 +50,20 @@ class Lid:
             pulse_duration = pulse_end_time - pulse_start_time
             
             distance = round(pulse_duration * 17150, 2)
-            
-            print("Distance:",distance,"cm")
 
             if distance < 10:
                 if not self._flag :
                     self._pwm.ChangeDutyCycle(7.5)
                     await asyncio.sleep(1)
                     full = await detect_full(sensor1, sensor2)
-                    print(full)
                     if full:
-                        print("FULL")
                         GPIO.output(DEPTH_LED, GPIO.HIGH)
-                        print("FULL")
                     else: 
                         GPIO.output(DEPTH_LED, GPIO.LOW)
-                        print("not FULL")
                     await asyncio.sleep(5)
                     self._pwm.ChangeDutyCycle(4)
                     await asyncio.sleep(1)
                 self._flag = True
             else:
                 self._flag = False
-            print("Detecting...")
             await asyncio.sleep(1)

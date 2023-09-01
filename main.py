@@ -4,7 +4,7 @@ import RPi.GPIO as GPIO
 
 from src.move import Move
 from src.header import Instructions, States, Actions
-from src.user_interface import fetch_instructions
+from src.user_interface import fetch_instructions, log_reply, reject_instruction
 from src.control import Lid # Control Module
 
 class Main:
@@ -33,34 +33,34 @@ class Main:
         if state == States.IDLE:
             if instruction == Instructions.INVALID:
                 # user_interface.reject_instruction(message = 'Invalid instruction')
-                print('Invalid instruction')
+                reject_instruction('Invalid instruction')
             elif instruction == Instructions.START:
-                print('Starting...')
+                log_reply('Starting...')
                 await asyncio.sleep(5)
-                print('Started')
+                log_reply('Started')
             else: 
                 # user_interface.reject_instruction(message = 'Currently turned off.')
-                print('Currently turned off.')
+                reject_instruction('Currently turned off.')
         elif state == States.ONLINE:
             if instruction ==  Instructions.START: 
                 # user_interface.reject_instruction(message = 'Already started.')
-                print('Already started.')
+                reject_instruction('Already started.')
             elif instruction ==  Instructions.END: 
-                print('Ending...')
+                log_reply('Ending...')
                 await asyncio.sleep(2)
                 status = Actions.HALT
             elif instruction ==  Instructions.MOVE:
                 await self._move.move()
             elif instruction ==  Instructions.RETURN:
-                print('Start moving...')
+                log_reply('Start moving...')
                 await asyncio.sleep(2)
-                print('End moving')
+                log_reply('End moving')
             elif instruction ==  Instructions.INVALID:
                 # user_interface.reject_instruction(message = 'Invalid instruction')
-                print('Invalid instruction')
+                reject_instruction('Invalid instruction')
             else:
                 # user_interface.reject_instruction(message = 'Invalid instruction')
-                print('Invalid instruction')
+                reject_instruction('Invalid instruction')
         
         return status
 
@@ -87,21 +87,21 @@ class Main:
             if state == States.ONLINE:
                 lid.turn_off()
             if instruction == Instructions.LOG:
-                print(f'Queue contents: {list(queue._queue)}')
+                log_reply(f'Queue contents: {list(queue._queue)}')
                 continue
             
             result = await self.process_instruction(instruction, state) # user_interface
             if result == Actions.HALT:
-                print("Clearing the queue...")
+                log_reply("Clearing the queue...")
                 queue._queue.clear()
-                print('Ended')
+                log_reply('Ended')
             
             queue.task_done() 
             if state == States.ONLINE and queue.empty() and result != Actions.HALT:
                 lid.turn_on()
                 
             # user_interface.log_reply(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
-            print(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
+            log_reply(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
     
     def shutdown(self):
         GPIO.cleanup()
@@ -125,7 +125,7 @@ class Main:
                 instruction: Instructions = await fetch_instructions()
                 await instruction_queue.put((instruction, state))
                 # user_interface.send_message(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
-                print(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
+                log_reply(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
                 if state == States.IDLE and instruction == Instructions.START:
                     state = States.ONLINE
                     lid_control.turn_on()

@@ -45,13 +45,11 @@ class Is_Full:
     async def is_trash_can_full(self):
         distance = await self.get_distance()
         if distance is not None:
-            print('平均距離：%0.2f 公分' % distance)
             if distance < AVOID_FULL:
                 return True
             else:
                 return False
         else:
-            print('無法確定參考距離')
             return None
     
     def shutdown(self):
