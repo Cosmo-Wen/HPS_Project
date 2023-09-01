@@ -118,21 +118,20 @@ class Move():
         return int(Dis/30)
 
     async def find_direction(self):
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
         s1 = self._ser.read_distance()
         # rotate 90 逆時針
         await self._direction.L_90()
         # input('Press enter after rotate 90deg counterclkwise')
         
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
         s2 = self._ser.read_distance()
         # rotate 90 逆時針
         await self._direction.L_90()
         # input('Press enter after rotate 90deg counterclkwise')
         
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
         s3 = self._ser.read_distance()
-        await self._direction.R_180()
         # input('Press enter after rotate 180deg')
         
         
@@ -153,24 +152,32 @@ class Move():
         await asyncio.sleep(1)
 
         while True:
+            print('test1')
             distance = float(self._ser.read_distance())
+            print('test2')
             
             if distance <= MOTOR_STOP_RADIUS:
+                print('test3')
                 break
 
             else:
+                print('test4')
                 distance, angle = await self.find_direction()
+                print('test5')
                 
                 angle_to_rotate = MOTOR_TURN_DEG * round(angle / MOTOR_TURN_DEG)
                 # car rotate
                 # 此處angl介於-180到180
                 if angle < 0: 
-                    angle = -angle
+                    angle = 180+angle
                     # 右轉angle
-                    await self._direction.R_30_round(self.angle_count(angle))
+                    print('test1')
+                    await self._direction.L_30_round(self.angle_count(angle))
+                    print('test1')
                 else:
                     # 左轉angle
-                    await self._direction.L_30_round(self.angle_count(angle))
+                    angle = 180-angle
+                    await self._direction.R_30_round(self.angle_count(angle))
                 # input('Press enter after car rotate ' + str(angle_to_rotate) + 'deg')
                 distance_to_go = min(MOTOR_MAX_TRAVEL_DIST, MOTOR_FORWARD*math.ceil(0.5*distance/MOTOR_FORWARD))
                 # car go
@@ -186,7 +193,6 @@ class Move():
                         return False
                     else:
                         return False
-        self._ser.close()
         return True
             # input('Press enter after car go ' + str(distance_to_go) + 'cm')
 

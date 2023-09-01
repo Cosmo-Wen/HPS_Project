@@ -66,4 +66,5 @@ class Lid:
                 self._flag = True
             else:
                 self._flag = False
+            print('Detecting...')
             await asyncio.sleep(1)

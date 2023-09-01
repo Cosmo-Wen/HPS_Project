@@ -9,6 +9,9 @@ class UWB3000Serial(serial.Serial):
     def read_distance(self):
         """Returns the distance of 2 tags in meters.
         """
+        print('stest1')
         self.write(b"Read Distance!\n")
+        print('stest2')
         text = self.readline().decode('ascii')
+        print('stest3')
         return float(text)
