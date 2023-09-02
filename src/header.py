@@ -1,3 +1,12 @@
+""" Stores all the global variables.
+
+This module stores all the global variable used in this application. Each
+variabl is in the format of FUNCTION_ATTRIBUTE_NAME.
+
+Typical usage:
+LID_TRIG
+"""
+
 from enum import Enum, auto
 
 # CONSTANTS

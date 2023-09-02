@@ -1,18 +1,43 @@
+""" X-trash: More time for you, less for trashing.
+
+This script executes the program for running X-trash.
+
+Usage example:
+$ python main.py
+"""
+
 import asyncio
 
 import RPi.GPIO as GPIO
 
-from src.move import Move
-from src.header import Instructions, States, Actions
-from src.user_interface import fetch_instructions, log_reply, reject_instruction
 from src.control import Lid # Control Module
+from src.header import Instructions, States, Actions
+from src.move import Move
+from src.user_interface import *
 
 class Main:
-    def __init__(self):
+    """ This is the program class that runs when the script is executed.
+
+    This class creates coroutines and runs the UI, process, and lid control
+    through these separately.
+
+    Attributes:
+        move: A movement method object
+    """
+
+    def __init__(self) -> None:
+        """ Set up internal attributes.
+
+        Args: None
+        """
+
         GPIO.setmode(GPIO.BCM)
         self._move = Move()
 
-    async def process_instruction(self, instruction: Instructions = Instructions.INVALID, state: States = States.INVALID):
+    async def process_instruction(
+        self, instruction: Instructions = Instructions.INVALID, 
+        state: States = States.INVALID
+    ) -> None:
         """ Processes the current instruction depending on the state
 
         Retrieve the instruction and the state
@@ -32,18 +57,15 @@ class Main:
 
         if state == States.IDLE:
             if instruction == Instructions.INVALID:
-                # user_interface.reject_instruction(message = 'Invalid instruction')
                 reject_instruction('Invalid instruction')
             elif instruction == Instructions.START:
                 log_reply('Starting...')
                 await asyncio.sleep(5)
                 log_reply('Started')
             else: 
-                # user_interface.reject_instruction(message = 'Currently turned off.')
                 reject_instruction('Currently turned off.')
         elif state == States.ONLINE:
             if instruction ==  Instructions.START: 
-                # user_interface.reject_instruction(message = 'Already started.')
                 reject_instruction('Already started.')
             elif instruction ==  Instructions.END: 
                 log_reply('Ending...')
@@ -56,29 +78,33 @@ class Main:
                 await asyncio.sleep(2)
                 log_reply('End moving')
             elif instruction ==  Instructions.INVALID:
-                # user_interface.reject_instruction(message = 'Invalid instruction')
                 reject_instruction('Invalid instruction')
             else:
-                # user_interface.reject_instruction(message = 'Invalid instruction')
                 reject_instruction('Invalid instruction')
         
         return status
 
-    async def instruction_consumer(self, queue: asyncio.Queue, lid = None) -> None:
-        """ Retrieve instruction from the queue and call relevant processing methods
+    async def instruction_consumer(
+        self, queue: asyncio.Queue, 
+        lid = None
+    ) -> None:
+        """ Retrieve instruction from the queue and call processing methods
 
         Asynchronously retrieve instructions from the queue
         Processes instruction and depending on the instruction, clear the queue
         
-        Warning: If more than two threads, be careful for race conditions and multiple clears
+        Warning: If more than two threads, be careful for race conditions and 
+        multiple clears
 
         Args:
             queue: instruction queue
+            lid: lid control object
         
         Returns: None
 
         Raises: None
         """
+
         while True:
             item = await queue.get()
             if item is None:
@@ -90,31 +116,62 @@ class Main:
                 log_reply(f'Queue contents: {list(queue._queue)}')
                 continue
             
-            result = await self.process_instruction(instruction, state) # user_interface
+            result = await self.process_instruction(instruction, state)
             if result == Actions.HALT:
                 log_reply("Clearing the queue...")
                 queue._queue.clear()
                 log_reply('Ended')
             
             queue.task_done() 
-            if state == States.ONLINE and queue.empty() and result != Actions.HALT:
+            if (
+                state == States.ONLINE 
+                and queue.empty() 
+                and result != Actions.HALT
+            ):
                 lid.turn_on()
                 
-            # user_interface.log_reply(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
-            log_reply(f'Processed Instruction: {instruction}, {len(queue._queue)} remaining.')
+            log_reply((f'Processed Instruction: {instruction},' 
+                       '{len(queue._queue)} remaining.'))
     
-    def shutdown(self):
+    def shutdown(self) -> None:
+        """ Clean GPIO, PWM, and Robot instances.
+
+        lid_control has GPIO and PWM instances
+        move has GPIO and robot instances
+
+        Args: None
+
+        Returns: None
+
+        Raises: None
+        """
+
         GPIO.cleanup()
         self._move.shutdown()
 
-    async def run(self):
+    async def run(self) -> None:
+        """ The main script that runs when the program is executed.
+
+        It mainly consists of a while loop that runs until forcibly 
+        turned off, which will trigger the finally and do proper shutdown
+        routines.
+
+        Args: None
+
+        Returns: None
+
+        Raises: None
+        """
+        
         try:
             instruction_queue = asyncio.Queue()
             lid_control = Lid()
             # user_interface = LineAPI()
 
             # Instruction Queue
-            instruction_queue_task = asyncio.create_task(self.instruction_consumer(instruction_queue, lid = lid_control))
+            instruction_queue_task = asyncio.create_task(
+                self.instruction_consumer(instruction_queue, lid = lid_control)
+            )
             # Human Detection
             detection_task = asyncio.create_task(lid_control.sense())
 
@@ -124,12 +181,15 @@ class Main:
             while not shutdown:
                 instruction: Instructions = await fetch_instructions()
                 await instruction_queue.put((instruction, state))
-                # user_interface.send_message(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
-                log_reply(f'Added instruction: {instruction}, {len(instruction_queue._queue)} in line.')
+                log_reply((f'Added instruction: {instruction},' 
+                           '{len(instruction_queue._queue)} in line.'))
                 if state == States.IDLE and instruction == Instructions.START:
                     state = States.ONLINE
                     lid_control.turn_on()
-                elif state == States.ONLINE and instruction == Instructions.END:
+                elif (
+                    state == States.ONLINE 
+                    and instruction == Instructions.END
+                ):
                     state = States.IDLE
                     lid_control.turn_off()
             

@@ -1,17 +1,47 @@
-import serial
+"""This module defines a class for interacting with a UWB 3000 Serial device.
+
+Typical usage:
+ser = UWB3000Serial(/tty/....)
+"""
+
 import time
-# terminal:　python3 -m serial.tools.miniterm /dev/ttyUSB0 115200
+import serial
 
 class UWB3000Serial(serial.Serial):
-    def __init__(self, path, baudrate):
+    """Provides methods for working with a UWB 3000 Serial device.
+
+    The 'UWB3000Serial' class extends 'serial.Serial' and communicates with
+    a UBE3000 Serial device and retrieves distance data.
+
+    Attributes: None
+    """
+
+    def __init__(self, path: str, baudrate: int) -> None:
+        """Initialize the Serial device by calling the parent constructor.
+
+        Args: 
+            path: the serial device connected path
+            baudrate: the transfer rate of the 
+
+        Returns: None
+
+        Raises: None
+        """
+
         super().__init__(path, baudrate)
     
     def read_distance(self):
-        """Returns the distance of 2 tags in meters.
+        """Reads and returns the distance of 2 tags  from the UWB device.
+
+        Args: None
+
+        Returns:
+            float: The distance between the two tags in meters.
+        
+        Raises: None
         """
-        print('stest1')
+
         self.write(b"Read Distance!\n")
-        print('stest2')
         text = self.readline().decode('ascii')
-        print('stest3')
+        
         return float(text)
