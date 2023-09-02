@@ -9,7 +9,7 @@ Bo-Wei (Cosmo), Wen
 
 X Trash, a revolutionary product that allows you to dispose of trash without leaving your workstation.
 
-Trash simplifies trash disposal with a user-friendly process:
+X Trash simplifies trash disposal with a user-friendly process:
 
 1. Send a message to X Trash.
 2. X Trash moves to your location.
