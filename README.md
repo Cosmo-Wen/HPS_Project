@@ -3,8 +3,8 @@
 Designed by Team 10/Team X of the 2023 Google Hardware Product Sprint Program.
 
 ## Members
-Bo-Wei (Cosmo), Wen
-Shiuan-Yu (Sherry), Chen
+Bo-Wei (Cosmo), Wen  
+Shiuan-Yu (Sherry), Chen  
 
 ## Overview
 
